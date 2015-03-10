@@ -5,17 +5,17 @@
  */
 package com.paypal.developer.demo.candiesclient;
 
-import com.pi4j.io.gpio.GpioController;
-import com.pi4j.io.gpio.GpioFactory;
-import com.pi4j.io.gpio.GpioPinDigitalOutput;
-import com.pi4j.io.gpio.PinState;
-import com.pi4j.io.gpio.RaspiPin;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
+import jdk.dio.DeviceConfig;
+import jdk.dio.DeviceManager;
+import jdk.dio.gpio.GPIOPin;
+import jdk.dio.gpio.GPIOPinConfig;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -37,7 +37,7 @@ public class CandiesClient {
     String port         = "1883";
     MemoryPersistence persistence = new MemoryPersistence();
     MqttAsyncClient client;
-    int gpioPort        = 7;
+    int gpioPort        = 18;
     //MqttClient client;
     
     /**
@@ -171,10 +171,17 @@ public class CandiesClient {
     private void initialize()      {
         
         System.out.println("Enabling GPIO " + gpioPort);
-        final GpioController gpio = GpioFactory.getInstance();
-        final GpioPinDigitalOutput pin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_07, "Motor", PinState.LOW);
+        GPIOPin pin = null;
+        final GPIOPinConfig pinConfig = new GPIOPinConfig(DeviceConfig.DEFAULT,
+                                                        gpioPort,
+                                                        GPIOPinConfig.DIR_OUTPUT_ONLY,
+                                                        GPIOPinConfig.MODE_OUTPUT_PUSH_PULL,
+                                                        GPIOPinConfig.TRIGGER_NONE,
+                                                        true);
         
         try {
+            
+            pin = (GPIOPin)DeviceManager.open(GPIOPin.class, pinConfig);
             
             String temp = "tcp://" + this.broker + ":" + this.port;
             
@@ -210,6 +217,9 @@ public class CandiesClient {
             System.out.println("excep "+me);
             me.printStackTrace();
         } catch (UnknownHostException ex) {
+            System.err.println(ex.getLocalizedMessage());
+            ex.printStackTrace();
+        } catch (IOException ex)    {
             System.err.println(ex.getLocalizedMessage());
             ex.printStackTrace();
         }

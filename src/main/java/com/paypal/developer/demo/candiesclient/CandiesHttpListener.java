@@ -6,12 +6,12 @@
 package com.paypal.developer.demo.candiesclient;
 
 import com.paypal.developer.jeffprestes.speaker.Speaker;
-import com.pi4j.io.gpio.GpioPinDigitalOutput;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jdk.dio.gpio.GPIOPin;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -25,7 +25,7 @@ import org.apache.http.impl.client.HttpClients;
 public class CandiesHttpListener {
     
     private String queue;
-    private GpioPinDigitalOutput pin;
+    private GPIOPin pin;
     private final static String URL = "https://www.novatrix.com.br/candies-paypal-php/gqi.php?q=";
     
     private class ClientRequester implements Runnable    {
@@ -55,20 +55,24 @@ public class CandiesHttpListener {
                             String[] retornos = retorno.split("|");
                             if (retornos.length>1)  {
                                 if ("1".equals(retornos[0]))    {
-                                    getPin().high();
-                                    System.out.println("--> GPIO state should be: ON");
-
                                     try {
+                                        pin.setValue(true);
+                                        System.out.println("--> GPIO state should be: ON");
+
                                         Thread.sleep(5000);
+
+                                        // turn off gpio pin #01
+                                        pin.setValue(false);
+                                        System.out.println("--> GPIO state should be: OFF");
+
+                                        Speaker.speak("Obrigado&nbsp;Obrigado", "pt");
+
                                     } catch (InterruptedException ex) {
                                         Logger.getLogger(CandiesMqttListener.class.getName()).log(Level.SEVERE, null, ex);
+                                    } catch (IOException ex)    {
+                                        System.err.println("The motor couldn't be actioned.");
+                                        Logger.getLogger(CandiesMqttListener.class.getName()).log(Level.SEVERE, null, ex);
                                     }
-
-                                    // turn off gpio pin #01
-                                    getPin().low();
-                                    System.out.println("--> GPIO state should be: OFF");
-
-                                    Speaker.speak("Obrigado&nbsp;Obrigado", "pt");
                                 } else if ("0".equals(retornos[0]))     {
                                     System.out.println("There is not new purchases...");
                                 }
@@ -83,7 +87,7 @@ public class CandiesHttpListener {
         
     }
     
-    public CandiesHttpListener(GpioPinDigitalOutput parPin, String queue)    {
+    public CandiesHttpListener(GPIOPin parPin, String queue)    {
         this.setPin(parPin);
         this.setQueue(queue);
         System.out.println("Initializing HTTP Client for queue at: " +  URL + this.getQueue());
@@ -107,14 +111,14 @@ public class CandiesHttpListener {
     /**
      * @return the pin
      */
-    public GpioPinDigitalOutput getPin() {
+    public GPIOPin getPin() {
         return pin;
     }
 
     /**
      * @param pin the pin to set
      */
-    public void setPin(GpioPinDigitalOutput pin) {
+    public void setPin(GPIOPin pin) {
         this.pin = pin;
     }
     

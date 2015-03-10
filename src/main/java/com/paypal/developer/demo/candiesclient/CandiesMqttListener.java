@@ -6,13 +6,10 @@
 package com.paypal.developer.demo.candiesclient;
 
 import com.paypal.developer.jeffprestes.speaker.Speaker;
-import com.pi4j.io.gpio.GpioController;
-import com.pi4j.io.gpio.GpioFactory;
-import com.pi4j.io.gpio.GpioPinDigitalOutput;
-import com.pi4j.io.gpio.PinState;
-import com.pi4j.io.gpio.RaspiPin;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jdk.dio.gpio.GPIOPin;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -25,11 +22,11 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
  */
 public class CandiesMqttListener implements MqttCallback {
 
-    private GpioPinDigitalOutput pin;
+    private GPIOPin pin;
     private MqttAsyncClient client;
     private String queue;
     
-    public CandiesMqttListener(GpioPinDigitalOutput parPin, MqttAsyncClient client, String queue)  {
+    public CandiesMqttListener(GPIOPin parPin, MqttAsyncClient client, String queue)  {
         this.pin = parPin;
         this.client = client;
         this.queue = queue;
@@ -50,22 +47,28 @@ public class CandiesMqttListener implements MqttCallback {
             this.publish("yes");
             
         } else if (mm.toString().equals("release"))  {
-            pin.high();
-            System.out.println("--> GPIO state should be: ON");
-        
+            
             try {
+                pin.setValue(true);
+                System.out.println("--> GPIO state should be: ON");
+            
                 Thread.sleep(5000);
+                
+                // turn off gpio pin #01
+                pin.setValue(false);
+                System.out.println("--> GPIO state should be: OFF");
+                
+                Speaker.speak("Obrigado&nbsp;Obrigado", "pt");
+            
+                this.publish("candies delivered");
+                
             } catch (InterruptedException ex) {
                 Logger.getLogger(CandiesMqttListener.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex)    {
+                System.err.println("The motor couldn't be actioned.");
+                this.publish("The motor couldn't be actioned. Candies weren't delivered. Reason: " + ex.getLocalizedMessage());
+                Logger.getLogger(CandiesMqttListener.class.getName()).log(Level.SEVERE, null, ex);
             }
-
-            // turn off gpio pin #01
-            pin.low();
-            System.out.println("--> GPIO state should be: OFF");
-            
-            Speaker.speak("Obrigado&nbsp;Obrigado", "pt");
-            
-            this.publish("candies delivered");
         }
     }
 
