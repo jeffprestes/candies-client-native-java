@@ -62,6 +62,7 @@ public class CandiesMqttListener implements MqttCallback {
                 pins[1].setValue(true);
                 System.out.println("--> GPIO state should be: OFF");
                 
+                //TODO: give a treatment to Speaker's exception within Speaker class
                 Speaker.speak("Thank you    thank you", "pt");
             
                 this.publish("candies delivered");
