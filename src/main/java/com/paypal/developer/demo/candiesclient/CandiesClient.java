@@ -37,7 +37,8 @@ public class CandiesClient {
     String port         = "1883";
     MemoryPersistence persistence = new MemoryPersistence();
     MqttAsyncClient client;
-    int gpioPort        = 18;
+    int gpioPortMotor        = 18;
+    int gpioPortLight        = 23;
     //MqttClient client;
     
     /**
@@ -170,10 +171,19 @@ public class CandiesClient {
     
     private void initialize()      {
         
-        System.out.println("Enabling GPIO " + gpioPort);
-        GPIOPin pin = null;
-        final GPIOPinConfig pinConfig = new GPIOPinConfig(DeviceConfig.DEFAULT,
-                                                        gpioPort,
+        System.out.println("Enabling GPIO " + gpioPortMotor);
+        GPIOPin pinMotor = null;
+        final GPIOPinConfig pinConfigMotor = new GPIOPinConfig(DeviceConfig.DEFAULT,
+                                                        gpioPortMotor,
+                                                        GPIOPinConfig.DIR_OUTPUT_ONLY,
+                                                        GPIOPinConfig.MODE_OUTPUT_PUSH_PULL,
+                                                        GPIOPinConfig.TRIGGER_NONE,
+                                                        true);
+        
+        System.out.println("Enabling GPIO " + gpioPortLight);
+        GPIOPin pinLight = null;
+        final GPIOPinConfig pinConfigLight = new GPIOPinConfig(DeviceConfig.DEFAULT,
+                                                        gpioPortLight,
                                                         GPIOPinConfig.DIR_OUTPUT_ONLY,
                                                         GPIOPinConfig.MODE_OUTPUT_PUSH_PULL,
                                                         GPIOPinConfig.TRIGGER_NONE,
@@ -181,7 +191,9 @@ public class CandiesClient {
         
         try {
             
-            pin = (GPIOPin)DeviceManager.open(GPIOPin.class, pinConfig);
+            pinMotor = (GPIOPin)DeviceManager.open(GPIOPin.class, pinConfigMotor);
+            pinLight = (GPIOPin)DeviceManager.open(GPIOPin.class, pinConfigLight);
+            GPIOPin[] pins = {pinMotor, pinLight};
             
             String temp = "tcp://" + this.broker + ":" + this.port;
             
@@ -202,10 +214,8 @@ public class CandiesClient {
             System.out.println("Subscribed to " + this.topic + " ...");
             
             System.out.println("Defining Listener...");
-            client.setCallback(new CandiesMqttListener(pin, client, this.topic));
+            client.setCallback(new CandiesMqttListener(pins, client, this.topic));
             System.out.println("Listener defined. Waiting for orders...");
-            
-            InetAddress address = InetAddress.getLocalHost();
             
             this.publish("Machine is initialized in " + CandiesClient.getIp() + " and waiting for orders...", client);
             

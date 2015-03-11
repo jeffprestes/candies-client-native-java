@@ -22,12 +22,12 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
  */
 public class CandiesMqttListener implements MqttCallback {
 
-    private GPIOPin pin;
+    private GPIOPin[] pins;
     private MqttAsyncClient client;
     private String queue;
     
-    public CandiesMqttListener(GPIOPin parPin, MqttAsyncClient client, String queue)  {
-        this.pin = parPin;
+    public CandiesMqttListener(GPIOPin[] parPins, MqttAsyncClient client, String queue)  {
+        this.pins = parPins;
         this.client = client;
         this.queue = queue;
     }
@@ -49,26 +49,31 @@ public class CandiesMqttListener implements MqttCallback {
         } else if (mm.toString().equals("release"))  {
             
             try {
-                pin.setValue(true);
+                
+                //TODO: Create methods to activate and deactivate pins
+                pins[0].setValue(false);
+                pins[1].setValue(false);
                 System.out.println("--> GPIO state should be: ON");
             
-                Thread.sleep(5000);
+                Thread.sleep(3500);
                 
                 // turn off gpio pin #01
-                pin.setValue(false);
+                pins[0].setValue(true);
+                pins[1].setValue(true);
                 System.out.println("--> GPIO state should be: OFF");
                 
-                Speaker.speak("Obrigado&nbsp;Obrigado", "pt");
+                Speaker.speak("Thank you    thank you", "pt");
             
                 this.publish("candies delivered");
                 
-            } catch (InterruptedException ex) {
-                Logger.getLogger(CandiesMqttListener.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex)    {
+            } catch (Exception ex) {
                 System.err.println("The motor couldn't be actioned.");
+                try { pins[0].close(); } catch (IOException exc)    {  exc.printStackTrace();       }
+                try { pins[1].close(); } catch (IOException exc)    {  exc.printStackTrace();       }
                 this.publish("The motor couldn't be actioned. Candies weren't delivered. Reason: " + ex.getLocalizedMessage());
                 Logger.getLogger(CandiesMqttListener.class.getName()).log(Level.SEVERE, null, ex);
-            }
+                System.exit(0);
+            } 
         }
     }
 
